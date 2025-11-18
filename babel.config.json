@@ -1,0 +1,20 @@
+{
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "useBuiltIns": "usage",
+        "corejs": 3,
+        "targets": {
+          "browsers": [
+            "IE 11",
+            "last 2 Chrome versions", // 修正：移除 of，改为 "浏览器名称 + versions"
+            "last 2 Firefox versions",
+            "last 2 Safari versions"
+          ]
+        },
+        "modules": false
+      }
+    ]
+  ]
+}

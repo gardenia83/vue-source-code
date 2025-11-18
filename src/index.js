@@ -1,35 +1,18 @@
 // import "regenerator-runtime/runtime";
 import { reactive, effect } from "./packages/index";
 const state = reactive({
-  name: "vue3",
+  name: "vue",
   version: "3.4.5",
   author: "vue team",
-  issuesList: [
-    {
-      id: 2,
-      title: "issue2",
-    },
-    {
-      id: 1,
-      title: "issue1",
-    },
-  ],
+  friends: ["jake", "james"],
 });
 effect(() => {
-  // console.log("effect");
-
-  // const issuesString = state.issuesList
-  //   .map((issues) => issues.title)
-  //   .toString();
-  // app.innerHTML = issuesString;
-  app.innerHTML = state.name;
+  app.innerHTML = `
+    <div> Welcome ${state.name} !</div>
+    <div> ${state.friends} </div>
+  `;
 });
 setTimeout(() => {
-  state.name = "vue3.4.5";
-  // state.issuesList.push({
-  //   id: 3,
-  //   title: "issue3",
-  // });
-  // state.issuesList.sort((a, b) => a.id - b.id);
-  // console.log(state.issuesList);
+  state.name = "vue3";
+  state.friends.push("jimmy");
 }, 1000);

@@ -1,5 +1,5 @@
 // import "regenerator-runtime/runtime";
-import { reactive, effect, computed } from "./packages/index";
+import { reactive, effect, computed, watch } from "./packages/index";
 const state = reactive({
   firstName: "tom",
   lastName: "lee",
@@ -14,6 +14,17 @@ effect(() => {
     <div> ${state.friends} </div>
   `;
 });
+watch(
+  () => state.lastName,
+  (oldValue, newValue) => {
+    console.log(newValue, "newValue");
+
+    if (newValue === "jacob") {
+      console.log("watch: jacob");
+      state.firstName = "jake";
+    }
+  }
+);
 
 setTimeout(() => {
   state.lastName = "jacob";

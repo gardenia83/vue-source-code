@@ -14,5 +14,5 @@ effect(() => {
 });
 setTimeout(() => {
   state.name = "vue3";
-  state.friends.push("jimmy");
+  state.friends[2] = "jacob";
 }, 1000);

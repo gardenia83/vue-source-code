@@ -1,5 +1,5 @@
 // baseHandlers.js
-import { isObject } from "./utils";
+import { isObject, isArray } from "./utils";
 import { ReactiveFlags, reactive } from "./reactive";
 import { track, trigger } from "./effect";
 // 引入抽离的数组工具
@@ -30,13 +30,12 @@ export const mutableHandlers = {
 
   set(target, key, value, receiver) {
     const oldValue = target[key];
-    const isArrayTarget = Array.isArray(target);
     // 6. 执行原生 set 操作
     const success = Reflect.set(target, key, value, receiver);
     // 7. 只有值变化且是自身属性时，才触发更新（避免原型链干扰）
     if (success && oldValue !== value) {
       // 数组索引设置：触发对应索引和 length 更新（Vue3 源码逻辑）
-      if (isArrayTarget && key !== "length") {
+      if (isArray(target) && key !== "length") {
         const index = Number(key);
         if (index >= 0 && index < target.length) {
           trigger(target, key); // 触发索引更新

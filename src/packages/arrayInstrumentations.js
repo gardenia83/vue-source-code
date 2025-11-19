@@ -1,4 +1,3 @@
-// arrayInstrumentations.js
 import { reactive } from "./reactive";
 import { trigger } from "./effect";
 import { isArray } from "./utils";

@@ -30,9 +30,13 @@ export function watch(source, cb, { immediate = false } = {}) {
   let oldValue;
   // 定义副作用执行的任务函数
   const job = () => {
-    let newValue = effect.run(); // 获取最新值
-    cb(oldValue, newValue); // 触发回调
-    oldValue = newValue; // 新值赋给旧值
+    if (cb) {
+      let newValue = effect.run(); // 获取最新值
+      cb(oldValue, newValue); // 触发回调
+      oldValue = newValue; // 新值赋给旧值
+    } else {
+      effect.run(); // 处理watchEffect
+    }
   };
 
   // 创建响应式副作用实例

@@ -1,28 +1,20 @@
 // import "regenerator-runtime/runtime";
-import { reactive, effect } from "./packages/index";
+import { reactive, effect, computed } from "./packages/index";
 const state = reactive({
-  name: "vue",
-  version: "3.4.5",
-  author: "vue team",
-  friends: ["jake", "james"],
+  firstName: "tom",
+  lastName: "lee",
+  friends: ["jacob", "james", "jimmy"],
 });
-const runner = effect(
-  () => {
-    app.innerHTML = `
-    <div> Welcome ${state.name} !</div>
+const fullName = computed(() => {
+  return state.firstName + " " + state.lastName;
+});
+effect(() => {
+  app.innerHTML = `
+    <div> Welcome ${fullName.value} !</div>
     <div> ${state.friends} </div>
   `;
-  },
-  {
-    scheduler() {
-      setTimeout(() => {
-        runner();
-      }, 1000);
-    },
-  }
-);
+});
 
 setTimeout(() => {
-  state.name = "vue3";
-  state.friends[2] = "jacob";
+  state.lastName = "jacob";
 }, 1000);

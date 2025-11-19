@@ -8,7 +8,7 @@ export function cleanupEffect(effect) {
   });
   effect.deps.length = 0;
 }
-class ReactiveEffect {
+export class ReactiveEffect {
   active = true;
   deps = [];
   parent = undefined;

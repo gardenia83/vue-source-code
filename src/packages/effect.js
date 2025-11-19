@@ -31,6 +31,12 @@ class ReactiveEffect {
       this.parent = undefined;
     }
   }
+  stop() {
+    if (this.active) {
+      cleanupEffect(this);
+      this.active = false;
+    }
+  }
 }
 export function effect(fn, options = {}) {
   const e = new ReactiveEffect(fn, options.scheduler);

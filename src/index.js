@@ -14,18 +14,13 @@ effect(() => {
     <div> ${state.friends} </div>
   `;
 });
-watch(
-  () => state.lastName,
-  (oldValue, newValue) => {
-    console.log(newValue, "newValue");
-
-    if (newValue === "jacob") {
-      console.log("watch: jacob");
-      state.firstName = "jake";
-    }
-  }
-);
+watch([() => state.lastName, () => state.firstName], (oldValue, newValue) => {
+  console.log("watch...");
+});
 
 setTimeout(() => {
   state.lastName = "jacob";
+}, 1000);
+setTimeout(() => {
+  state.firstName = "james";
 }, 1000);

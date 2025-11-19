@@ -25,10 +25,8 @@ export class ReactiveEffect {
       activeEffect = this;
       // 清除旧依赖
       cleanupEffect(this);
-      const value = this.fn();
-      console.log(value);
 
-      return value;
+      return this.fn();
     } finally {
       activeEffect = this.parent;
       this.parent = undefined;

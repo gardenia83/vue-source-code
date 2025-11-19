@@ -1,6 +1,6 @@
 import { isReactive } from "./reactive";
 import { ReactiveEffect } from "./effect";
-import { isFunction } from "./utils";
+import { isFunction, isArray } from "./utils";
 /**
  * 监听响应式数据变化并执行回调函数
  * @param {Object|Function} source - 要监听的数据源，可以是响应式对象或函数
@@ -8,7 +8,7 @@ import { isFunction } from "./utils";
  * @param {Object} options - 配置选项
  * @param {boolean} options.immediate - 是否立即执行回调函数，默认为true
  */
-export function watch(source, cb, { immediate = true } = {}) {
+export function watch(source, cb, { immediate = false } = {}) {
   let getter;
   if (isReactive(source)) {
     // 如果是响应式对象 则调用traverse
@@ -16,6 +16,16 @@ export function watch(source, cb, { immediate = true } = {}) {
   } else if (isFunction(source)) {
     // 如果是函数 则直接执行
     getter = source;
+  } else if (isArray(source)) {
+    // 处理数组类型的监听源
+    getter = () =>
+      source.map((s) => {
+        if (isReactive(s)) {
+          return traverse(s);
+        } else if (isFunction(s)) {
+          return s();
+        }
+      });
   }
   let oldValue;
   // 定义副作用执行的任务函数

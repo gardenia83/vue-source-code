@@ -58,7 +58,6 @@ export function traverse(source, s = new Set()) {
   if (!isObject(source)) {
     return source;
   }
-
   // 检测循环引用，如果对象已被访问过则直接返回
   if (s.has(source)) {
     return source;

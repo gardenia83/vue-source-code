@@ -11,26 +11,33 @@ const state = reactive({
   lastName: "lee",
   friends: ["jacob", "james", "jimmy"],
 });
-const name = reactive({
-  fullName: "---",
-});
-const fullName = computed(() => {
-  return state.firstName + " " + state.lastName;
+const fullName = computed({
+  get() {
+    return state.firstName + " " + state.lastName;
+  },
+  set(newValue) {
+    [state.firstName, state.lastName] = newValue.split(" ");
+  },
 });
 effect(() => {
   app.innerHTML = `
-    <div> Welcome ${name.fullName} !</div>
+    <div> Welcome ${fullName.value} !</div>
     <div> ${state.friends} </div>
   `;
 });
-// watch([() => state.lastName, () => state.firstName], (oldValue, newValue) => {
-//   console.log("watch...");
-// });
-watchEffect(() => {
-  console.log(111);
 
-  name.fullName = state.firstName + " " + state.lastName;
+watch([() => state.lastName, () => state.firstName], (oldValue, newValue) => {
+  console.log("oldValue: " + oldValue, "newValue: " + newValue);
 });
+// watchEffect(() => {
+//   name.fullName = state.firstName + " " + state.lastName;
+// });
+// setTimeout(() => {
+//   fullName.value = "jacob him";
+// }, 1000);
+// setTimeout(() => {
+//   console.log("firstName: " + state.firstName, "lastName: " + state.lastName);
+// }, 2000);
 
 setTimeout(() => {
   state.lastName = "jacob";

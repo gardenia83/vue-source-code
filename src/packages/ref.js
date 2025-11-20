@@ -1,7 +1,7 @@
 // 导入常量和依赖
 import { ReactiveFlags } from "./constants";
 import { activeEffect, trackEffects, triggerEffects } from "./effect";
-import { reactive } from "./reactive";
+import { toReactive } from "./reactive";
 import { isObject, isFunction, isArray } from "./utils";
 
 /**
@@ -134,15 +134,6 @@ export function ref(value, shallow) {
  */
 function createRef(rawValue, shallow) {
   return new RefImpl(rawValue, shallow);
-}
-
-/**
- * 将值转换为响应式对象（如果是对象的话）
- * @param {any} value - 值
- * @returns {any} 响应式对象或原始值
- */
-export function toReactive(value) {
-  return isObject(value) ? reactive(value) : value;
 }
 
 /**

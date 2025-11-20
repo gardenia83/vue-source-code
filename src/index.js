@@ -39,7 +39,7 @@ effect(() => {
 });
 setTimeout(() => {
   firstName.value = "james";
-  lastName.value = "lee";
+  lastName.value = "mary";
 }, 2000);
 // watch([() => state.lastName, () => state.firstName], (oldValue, newValue) => {
 //   console.log("oldValue: " + oldValue, "newValue: " + newValue);

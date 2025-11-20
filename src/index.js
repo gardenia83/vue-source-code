@@ -6,13 +6,18 @@ import {
   watchEffect,
   watch,
   ref,
+  toRef,
+  toRefs,
 } from "./packages/index";
 const state = reactive({
   firstName: "tom",
   lastName: "lee",
   friends: ["jacob", "james", "jimmy"],
 });
-const count = ref(0);
+const counter = reactive({
+  num: 0,
+});
+const num = toRef(() => counter.num);
 const fullName = computed({
   get() {
     return state.firstName + " " + state.lastName;
@@ -21,14 +26,20 @@ const fullName = computed({
     [state.firstName, state.lastName] = newValue.split(" ");
   },
 });
+const { firstName, lastName } = toRefs(state);
 effect(() => {
   app.innerHTML = `
     <div> Welcome ${fullName.value} !</div>
-    <div> ${count.value} </div>
+    <div> 
+    <p>fistName: ${firstName.value} </p>
+    <p>lastName: ${lastName.value} </p>
+    </div>
+    <div> ${num.value} </div>
   `;
 });
-setInterval(() => {
-  count.value++;
+setTimeout(() => {
+  firstName.value = "james";
+  lastName.value = "lee";
 }, 2000);
 // watch([() => state.lastName, () => state.firstName], (oldValue, newValue) => {
 //   console.log("oldValue: " + oldValue, "newValue: " + newValue);

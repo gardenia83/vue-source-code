@@ -1,7 +1,8 @@
 // baseHandlers.js
 import { isObject, isArray } from "./utils";
-import { ReactiveFlags, reactive } from "./reactive";
+import { reactive } from "./reactive";
 import { track, trigger } from "./effect";
+import { ReactiveFlags } from "./constants";
 // 引入抽离的数组工具
 import { isArrayInstrumentation, arrayMethods } from "./arrayInstrumentations";
 

@@ -1,8 +1,7 @@
 import { mutableHandlers } from "./baseHandler.js";
 import { isObject } from "./utils.js";
-export const ReactiveFlags = {
-  IS_REACTIVE: "__v_isReactive",
-};
+import { ReactiveFlags } from "./constants.js";
+
 // 缓存代理对象，避免重复代理
 const reactiveMap = new WeakMap();
 export function reactive(target) {

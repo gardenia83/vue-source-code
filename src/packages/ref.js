@@ -138,7 +138,7 @@ function createRef(rawValue, shallow) {
 
 /**
  * 将响应式对象的所有属性转换为 refs
- * @param {object|array} object - 响应式对象
+ * @param {object|Array} object - 响应式对象
  * @returns {object} 包含所有属性 refs 的对象
  */
 export function toRefs(object) {
@@ -198,4 +198,62 @@ function propertyToRef(source, key, defaultValue) {
  */
 export function isRef(r) {
   return r ? r[ReactiveFlags.IS_REF] === true : false;
+}
+/**
+ * 解包 ref 对象，如果是 ref 则返回其值，否则返回原始值
+ * @param {any} ref - 可能是 ref 对象的值
+ * @returns {any} ref 的值或原始值
+ */
+export function unRef(ref) {
+  return isRef(ref) ? ref.value : ref;
+}
+
+/**
+ * 浅层解包处理器
+ * 用于创建代理对象，自动解包属性中的 ref
+ */
+const shallowUnwrapHandlers = {
+  /**
+   * 拦截属性读取操作
+   * @param {object} target - 目标对象
+   * @param {string|symbol} key - 属性名
+   * @param {object} receiver - 代理对象
+   * @returns {any} 属性值（如果是 ref 则返回其 .value）
+   */
+  get(target, key, receiver) {
+    // 获取原始属性值并自动解包 ref
+    return unRef(Reflect.get(target, key, receiver));
+  },
+
+  /**
+   * 拦截属性设置操作
+   * @param {object} target - 目标对象
+   * @param {string|symbol} key - 属性名
+   * @param {any} value - 新值
+   * @param {object} receiver - 代理对象
+   * @returns {boolean} 设置是否成功
+   */
+  set(target, key, value, receiver) {
+    const oldValue = target[key];
+
+    // 如果旧值是 ref 且新值不是 ref，则直接更新旧 ref 的值
+    if (isRef(oldValue) && !isRef(value)) {
+      oldValue.value = value;
+      return true;
+    }
+    // 否则执行正常的属性设置
+    else {
+      return Reflect.set(target, key, value, receiver);
+    }
+  },
+};
+
+/**
+ * 创建一个代理对象，自动解包其中的 ref 属性
+ * 在模板中使用时，会自动展开 ref 而无需使用 .value
+ * @param {object} objectWithRefs - 包含 refs 的对象
+ * @returns {Proxy} 代理对象
+ */
+export function proxyRefs(objectWithRefs) {
+  return new Proxy(objectWithRefs, shallowUnwrapHandlers);
 }

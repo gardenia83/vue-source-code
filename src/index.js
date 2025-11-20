@@ -8,6 +8,7 @@ import {
   ref,
   toRef,
   toRefs,
+  proxyRefs,
 } from "./packages/index";
 const state = reactive({
   firstName: "tom",
@@ -26,20 +27,21 @@ const fullName = computed({
     [state.firstName, state.lastName] = newValue.split(" ");
   },
 });
-const { firstName, lastName } = toRefs(state);
+const newState = toRefs(state);
+const user = proxyRefs(newState);
 effect(() => {
   app.innerHTML = `
     <div> Welcome ${fullName.value} !</div>
     <div> 
-    <p>fistName: ${firstName.value} </p>
-    <p>lastName: ${lastName.value} </p>
+    <p>fistName: ${user.firstName} </p>
+    <p>lastName: ${user.lastName} </p>
     </div>
     <div> ${num.value} </div>
   `;
 });
 setTimeout(() => {
-  firstName.value = "james";
-  lastName.value = "mary";
+  newState.firstName.value = "james";
+  newState.lastName.value = "jacob";
 }, 2000);
 // watch([() => state.lastName, () => state.firstName], (oldValue, newValue) => {
 //   console.log("oldValue: " + oldValue, "newValue: " + newValue);

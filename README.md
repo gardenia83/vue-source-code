@@ -12,3 +12,4 @@
 6. ref 函数
 7. toRefs 函数
 8. toRef 函数
+9. EffectScope 函数

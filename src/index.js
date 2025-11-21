@@ -9,56 +9,30 @@ import {
   toRef,
   toRefs,
   proxyRefs,
+  effectScope,
 } from "./packages/index";
 const state = reactive({
   firstName: "tom",
   lastName: "lee",
   friends: ["jacob", "james", "jimmy"],
 });
-const counter = reactive({
-  num: 0,
-});
-const num = toRef(() => counter.num);
-const fullName = computed({
-  get() {
+const scope = effectScope();
+scope.run(() => {
+  const fullName = computed(() => {
     return state.firstName + " " + state.lastName;
-  },
-  set(newValue) {
-    [state.firstName, state.lastName] = newValue.split(" ");
-  },
+  });
+  const app = document.getElementById("app");
+  watch(
+    () => state.firstName,
+    () => {
+      console.log("watch fullName");
+    }
+  );
+  effect(() => {
+    app.innerHTML = `<h1>${fullName.value}</h1>`;
+  });
+  setTimeout(() => {
+    state.firstName = "tom1";
+  }, 1000);
 });
-const newState = toRefs(state);
-const user = proxyRefs(newState);
-effect(() => {
-  app.innerHTML = `
-    <div> Welcome ${fullName.value} !</div>
-    <div> 
-    <p>fistName: ${user.firstName} </p>
-    <p>lastName: ${user.lastName} </p>
-    </div>
-    <div> ${num.value} </div>
-  `;
-});
-setTimeout(() => {
-  newState.firstName.value = "james";
-  newState.lastName.value = "jacob";
-}, 2000);
-// watch([() => state.lastName, () => state.firstName], (oldValue, newValue) => {
-//   console.log("oldValue: " + oldValue, "newValue: " + newValue);
-// });
-// watchEffect(() => {
-//   name.fullName = state.firstName + " " + state.lastName;
-// });
-// setTimeout(() => {
-//   fullName.value = "jacob him";
-// }, 1000);
-// setTimeout(() => {
-//   console.log("firstName: " + state.firstName, "lastName: " + state.lastName);
-// }, 2000);
-
-// setTimeout(() => {
-//   state.lastName = "jacob";
-// }, 1000);
-// setTimeout(() => {
-//   state.firstName = "james";
-// }, 1000);
+scope.stop();

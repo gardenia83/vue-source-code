@@ -1,3 +1,4 @@
+import { recordEffectScope } from "./effectScope";
 // 当前响应器
 export let activeEffect;
 
@@ -15,6 +16,7 @@ export class ReactiveEffect {
   constructor(fn, scheduler) {
     this.fn = fn;
     this.scheduler = scheduler;
+    recordEffectScope(this);
   }
   run() {
     if (!this.active) {
@@ -82,17 +84,19 @@ export function trigger(target, key) {
   const depsMap = targetMap.get(target);
   if (!depsMap) return;
   let dep = depsMap.get(key);
-  if (dep) triggerEffects(dep);
+  triggerEffects(dep);
 }
 export function triggerEffects(dep) {
-  const effects = [...dep];
-  effects.forEach((effect) => {
-    if (effect != activeEffect) {
-      if (!effect.scheduler) {
-        effect.run();
-      } else {
-        effect.scheduler();
+  if (dep) {
+    const effects = [...dep];
+    effects.forEach((effect) => {
+      if (effect != activeEffect) {
+        if (!effect.scheduler) {
+          effect.run();
+        } else {
+          effect.scheduler();
+        }
       }
-    }
-  });
+    });
+  }
 }

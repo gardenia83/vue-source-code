@@ -1,6 +1,6 @@
 import { isReactive } from "./reactive";
 import { ReactiveEffect } from "./effect";
-import { isFunction, isArray, isObject } from "./utils";
+import { isFunction, isArray, isObject } from "../shared/utils";
 /**
  * 监听响应式数据变化并执行回调函数
  * @param {Object|Function} source - 要监听的数据源，可以是响应式对象或函数

@@ -1,4 +1,4 @@
-import { isFunction } from "./utils";
+import { isFunction } from "../shared/utils";
 import {
   activeEffect,
   ReactiveEffect,

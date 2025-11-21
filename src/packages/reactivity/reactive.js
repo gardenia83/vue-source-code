@@ -1,6 +1,6 @@
 // 导入必要的依赖
 import { mutableHandlers } from "./baseHandler.js"; // 响应式处理逻辑
-import { isObject } from "./utils.js"; // 工具函数：判断是否为对象
+import { isObject } from "../shared/utils.js"; // 工具函数：判断是否为对象
 import { ReactiveFlags } from "./constants.js"; // 响应式标识常量
 
 // 缓存已创建的响应式代理对象，避免对同一对象重复创建代理

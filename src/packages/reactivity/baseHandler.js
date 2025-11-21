@@ -1,5 +1,5 @@
 // baseHandlers.js
-import { isObject, isArray } from "./utils";
+import { isObject, isArray } from "../shared/utils";
 import { reactive } from "./reactive";
 import { track, trigger } from "./effect";
 import { ReactiveFlags } from "./constants";

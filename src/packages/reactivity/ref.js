@@ -2,7 +2,7 @@
 import { ReactiveFlags } from "./constants";
 import { activeEffect, trackEffects, triggerEffects } from "./effect";
 import { toReactive } from "./reactive";
-import { isObject, isFunction, isArray } from "./utils";
+import { isObject, isFunction, isArray } from "../shared/utils";
 
 /**
  * Ref 实现类

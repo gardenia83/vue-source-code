@@ -10,7 +10,7 @@ import {
   toRefs,
   proxyRefs,
   effectScope,
-} from "./packages/index";
+} from "./packages/reactivity/index.js";
 const state = reactive({
   firstName: "tom",
   lastName: "lee",

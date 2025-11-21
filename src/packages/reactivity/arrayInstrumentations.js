@@ -1,6 +1,6 @@
 import { reactive } from "./reactive";
 import { trigger } from "./effect";
-import { isArray } from "./utils";
+import { isArray } from "../shared/utils";
 
 // 需要特殊处理的数组修改方法（Vue3 源码中也是用 Set 存储）
 export const arrayInstrumentations = new Set([

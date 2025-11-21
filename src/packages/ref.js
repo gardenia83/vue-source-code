@@ -133,6 +133,10 @@ export function ref(value, shallow) {
  * @returns {RefImpl} ref 实例
  */
 function createRef(rawValue, shallow) {
+  // 如果传入的值已经是 ref，则直接返回该 ref，避免重复包装
+  if (isRef(rawValue)) {
+    return rawValue;
+  }
   return new RefImpl(rawValue, shallow);
 }
 

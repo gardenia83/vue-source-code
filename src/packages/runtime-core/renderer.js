@@ -1,5 +1,5 @@
 import { ShapeFlags } from "@/shared/shapeFlags";
-
+import { isString } from "@/shared/utils";
 export function createRenderer(options) {
   return baseCreateRenderer(options);
 }
@@ -15,13 +15,18 @@ function baseCreateRenderer(options) {
     setElementText: hostSetElementText,
     parentNode: hostParentNode,
     nextSibling: hostNextSibling,
-    setScopeId: hostSetScopeId = NOOP,
+    setScopeId: hostSetScopeId,
     insertStaticContent: hostInsertStaticContent,
   } = options;
+  const unmount = (vnode) => hostRemove(vnode.el);
   const mountChildren = (children, container) => {
     for (let i = 0; i < children.length; i++) {
       const child = children[i];
-      patch(null, child, container);
+      if (isString(child)) {
+        hostInsert(hostCreateText(child), container);
+      } else {
+        patch(null, child, container);
+      }
     }
   };
   const mountElement = (vnode, container) => {
@@ -41,7 +46,6 @@ function baseCreateRenderer(options) {
     hostInsert(el, container);
   };
   const patch = (n1, n2, container) => {
-    debugger;
     if (n1 === n2) return;
     if (n1 == null) {
       mountElement(n2, container);
@@ -49,6 +53,9 @@ function baseCreateRenderer(options) {
   };
   const render = (vnode, container) => {
     if (vnode == null) {
+      if (container._vnode) {
+        unmount(container._vnode);
+      }
       // 删除节点
     } else {
       patch(container._vnode || null, vnode, container);

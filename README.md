@@ -17,3 +17,12 @@
 9. EffectScope 函数
 
 ## vue3 虚拟 DOM
+
+简单实现了 h 函数和 render 函数
+
+```js
+render(
+  h("div", null, "hello world", h("h1", { style: "color:red" }, "vue3")),
+  app
+);
+```

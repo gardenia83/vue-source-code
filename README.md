@@ -2,6 +2,8 @@
 
 这是一个简易的 vue 源码实现，主要给新手学习 vue 源码使用。
 
+## vue3 响应式
+
 目前实现的方法有：
 
 1. reactive 函数
@@ -13,3 +15,5 @@
 7. toRefs 函数
 8. toRef 函数
 9. EffectScope 函数
+
+## vue3 虚拟 DOM

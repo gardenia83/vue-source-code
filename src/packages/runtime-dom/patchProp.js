@@ -2,6 +2,8 @@
 import { isOn, isModelListener } from "../shared/utils";
 import { patchClass } from "./modules/class";
 import { patchStyle } from "./modules/style";
+import { patchEvent } from "./modules/events";
+import { patchAttr } from "./modules/attrs";
 
 /**
  * 属性更新的核心函数

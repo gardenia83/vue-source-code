@@ -16,10 +16,7 @@ export function patchAttr(el, key, value, isSVG, instance, isBoolean) {
     if (value == null || (isBoolean && !includeBooleanAttr(value))) {
       el.removeAttribute(key);
     } else {
-      el.setAttribute(
-        key,
-        isBoolean ? "" : isSymbol(value) ? String(value) : value
-      );
+      el.setAttribute(key, value);
     }
   }
 }

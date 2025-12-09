@@ -3,7 +3,8 @@ import { ShapeFlags } from "../shared/shapeFlags";
 export function isVNode(value) {
   return value ? value.__v_isVNode === true : false;
 }
-
+export const Text = Symbol.for("v-txt");
+export const Fragment = Symbol.for("v-fgt");
 export function createVNode(type, props, children = null) {
   const shapeFlag = isString(type) ? ShapeFlags.ELEMENT : 0;
 

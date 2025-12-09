@@ -41,9 +41,25 @@ render(null, app);
 | 文本   | 数组   | 删除旧节点，设置文本内容   |
 | 文本   | 文本   | 更新文本内容               |
 | 文本   | 空节点 | 更新文本内容               |
-| 数组   | 数组   | diff 算法(部分完成)        |
+| 数组   | 数组   | diff 算法                  |
 | 数组   | 文本   | 清空文本，进行数组节点挂载 |
 | 数组   | 空     | 进行数组节点挂载           |
 | 空     | 数组   | 删除所有旧节点             |
 | 空     | 文本   | 清空文本                   |
 | 空     | 空     | 什么也不做                 |
+
+### 3. 补充添加
+
+#### 支持文本节点添加
+
+```js
+import { Text } from "@/runtime-core";
+render(h(Text, "hello world"));
+```
+
+#### 支持 Fragment 节点添加
+
+```js
+import { Fragment } from "@/runtime-core";
+render(h(Fragment, [h("div", "hello world"), h("div", "hello world")]));
+```

@@ -1,9 +1,8 @@
 // 导入辅助工具和常量
 import { ShapeFlags } from "@/shared/shapeFlags";
 import { isString } from "@/shared/utils";
-import { isSameVNodeType } from "./vnode";
+import { isSameVNodeType, Text, Fragment } from "./vnode";
 import { getSequence } from "@/shared/getSequence";
-
 /**
  * 创建渲染器的工厂函数
  * @param {Object} options - 平台特定的操作方法集合
@@ -27,7 +26,7 @@ function baseCreateRenderer(options) {
     createElement: hostCreateElement,
     createText: hostCreateText,
     createComment: hostCreateComment,
-    // setText: hostSetText,
+    setText: hostSetText,
     setElementText: hostSetElementText,
     // parentNode: hostParentNode,
     // nextSibling: hostNextSibling,
@@ -267,7 +266,13 @@ function baseCreateRenderer(options) {
    * 卸载虚拟节点
    * @param {VNode} vnode - 虚拟节点
    */
-  const unmount = (vnode) => hostRemove(vnode.el);
+  const unmount = (vnode) => {
+    if (vnode.type === Fragment) {
+      unmountChildren(vnode.children);
+    } else {
+      hostRemove(vnode.el);
+    }
+  };
 
   /**
    * 挂载子节点数组
@@ -318,7 +323,23 @@ function baseCreateRenderer(options) {
     // 将元素插入容器
     hostInsert(el, container, anchor);
   };
-
+  const processText = (n1, n2, container, anchor) => {
+    if (n1 == null) {
+      hostInsert((n2.el = hostCreateText(n2.children)), container, anchor);
+    } else {
+      const el = (n2.el = n1.el);
+      if (n2.children !== n1.children) {
+        hostSetText(el, n2.children);
+      }
+    }
+  };
+  const processFragment = (n1, n2, container, anchor) => {
+    if (n1 == null) {
+      mountChildren(n2.children || [], container, anchor);
+    } else {
+      patchChildren(n1, n2, container, anchor);
+    }
+  };
   /**
    * 核心patch方法，对比新旧虚拟节点并更新DOM
    * @param {VNode|null} n1 - 旧虚拟节点
@@ -334,10 +355,20 @@ function baseCreateRenderer(options) {
       unmount(n1);
       n1 = null;
     }
+    const { type, shapeFlag } = n2;
+    switch (type) {
+      case Text:
+        processText(n1, n2, container, anchor);
+        break;
+      case Fragment:
+        processFragment(n1, n2, container, anchor);
+        break;
+      default:
+        processElement(n1, n2, container, anchor);
+    }
 
     // vue3 源码对不同类型的vnode做了不同的处理
     // 此处仅处理元素节点
-    processElement(n1, n2, container, anchor);
   };
 
   /**

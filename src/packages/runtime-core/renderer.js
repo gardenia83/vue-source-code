@@ -3,6 +3,7 @@ import { ShapeFlags } from "@/shared/shapeFlags";
 import { isString } from "@/shared/utils";
 import { isSameVNodeType, Text, Fragment } from "./vnode";
 import { getSequence } from "@/shared/getSequence";
+
 /**
  * 创建渲染器的工厂函数
  * @param {Object} options - 平台特定的操作方法集合
@@ -35,7 +36,8 @@ function baseCreateRenderer(options) {
   } = options;
 
   /**
-   * 处理带有key的子节点diff算法
+   * 处理带有key的子节点diff算法 - Vue3核心优化算法
+   * 使用双端预检+最长递增子序列算法优化DOM操作
    * @param {Array} c1 - 旧子节点数组
    * @param {Array} c2 - 新子节点数组
    * @param {HTMLElement} container - 容器元素
@@ -43,10 +45,14 @@ function baseCreateRenderer(options) {
   const patchKeyedChildren = (c1, c2, container) => {
     // 比较两个子节点(数组)差异 全量匹配
     // 同级比较 深度遍历
+
+    // 1. 从头部开始同步前置相同节点
     let i = 0;
     const l2 = c2.length;
-    let e1 = c1.length - 1;
-    let e2 = l2 - 1;
+    let e1 = c1.length - 1; // 旧节点末尾索引
+    let e2 = l2 - 1; // 新节点末尾索引
+
+    // 从前向后比较节点，遇到不同类型节点则停止
     while (i <= e1 && i <= e2) {
       const n1 = c1[i];
       const n2 = c2[i];
@@ -57,6 +63,8 @@ function baseCreateRenderer(options) {
       }
       i++;
     }
+
+    // 2. 从尾部开始同步后置相同节点
     while (i <= e1 && i <= e2) {
       const n1 = c1[e1];
       const n2 = c2[e2];
@@ -68,26 +76,36 @@ function baseCreateRenderer(options) {
       e1--;
       e2--;
     }
+
     console.log(`i - ${i} e1 - ${e1} e2 - ${e2}`);
+
+    // 3. 处理新增节点情况 (i > e1说明旧节点已经处理完)
     if (i > e1) {
       // 新增子节点
       if (i <= e2) {
         const nextPos = e2 + 1;
+        // 确定插入位置的锚点元素
         const anchor = nextPos < l2 ? c2[nextPos].el : null;
         while (i <= e2) {
           patch(null, c2[i], container, anchor);
           i++;
         }
       }
-    } else if (i > e2) {
+    }
+    // 4. 处理删除节点情况 (i > e2说明新节点已经处理完)
+    else if (i > e2) {
       // 删除子节点
       while (i <= e1) {
         unmount(c1[i]);
         i++;
       }
-    } else {
-      const s1 = i;
-      const s2 = i;
+    }
+    // 5. 处理中间乱序部分 - 最复杂的情况
+    else {
+      const s1 = i; // 旧节点乱序部分起始索引
+      const s2 = i; // 新节点乱序部分起始索引
+
+      // 建立新节点key到索引的映射表，提高查找效率
       const keyToNewIndexMap = new Map();
       for (i = s2; i <= e2; i++) {
         const nextChild = c2[i];
@@ -95,36 +113,57 @@ function baseCreateRenderer(options) {
           keyToNewIndexMap.set(nextChild.key, i);
         }
       }
+
       console.log(keyToNewIndexMap);
+
       let j;
-      const toBePatched = e2 - s2 + 1;
-      let moved = false;
-      const newIndexToOldIndexMap = new Array(toBePatched);
+      const toBePatched = e2 - s2 + 1; // 需要处理的新节点数量
+      let moved = false; // 标记节点是否需要移动
+      const newIndexToOldIndexMap = new Array(toBePatched); // 新节点索引到旧节点索引的映射数组
+
+      // 初始化映射数组，0表示新节点
       for (i = 0; i < toBePatched; i++) newIndexToOldIndexMap[i] = 0;
+
+      // 遍历旧节点，建立新旧节点映射关系
       for (let i = s1; i <= e1; i++) {
         const prevChild = c1[i];
         let newIndex = keyToNewIndexMap.get(prevChild.key);
+
+        // 旧节点在新节点中找不到，说明已被删除
         if (newIndex === undefined) {
           unmount(prevChild);
         } else {
-          newIndexToOldIndexMap[i - s2] = i + 1; // 对应老节点对应的索引
+          // 记录新节点在旧节点中的位置（+1是为了避免0的歧义）
+          newIndexToOldIndexMap[newIndex - s2] = i + 1;
+          // 更新节点
           patch(prevChild, c2[newIndex], container);
         }
       }
+
+      // 获取最长递增子序列，优化移动操作
       const increasingNewIndexSequence = moved
         ? getSequence(newIndexToOldIndexMap)
         : [];
-      j = increasingNewIndexSequence.length - 1;
+
+      j = increasingNewIndexSequence.length - 1; // 最长递增子序列指针
+
+      // 从后向前处理，确保锚点元素已存在
       for (i = toBePatched - 1; i >= 0; i--) {
         const nextIndex = s2 + i;
         const nextChild = c2[nextIndex];
+        // 计算锚点元素
         const anchor = nextIndex + 1 < c2.length ? c2[nextIndex + 1].el : null;
+
+        // 新节点（在旧节点中未找到）
         if (newIndexToOldIndexMap[i] === 0) {
           patch(null, nextChild, container, anchor);
         } else {
+          // 已存在的节点，判断是否需要移动
           if (j < 0 || i !== increasingNewIndexSequence[j]) {
+            // 需要移动节点到正确位置
             hostInsert(nextChild.el, container, anchor);
           } else {
+            // 节点已在正确位置，不需要移动
             j--;
           }
         }
@@ -151,6 +190,7 @@ function baseCreateRenderer(options) {
 
   /**
    * 对比新旧子节点并更新
+   * 根据新旧节点类型的不同组合执行相应的更新策略
    * @param {VNode} n1 - 旧虚拟节点
    * @param {VNode} n2 - 新虚拟节点
    * @param {HTMLElement} container - 容器元素
@@ -201,6 +241,7 @@ function baseCreateRenderer(options) {
 
   /**
    * 更新元素属性
+   * 对比新旧属性差异并应用变更
    * @param {Object} oldProps - 旧属性对象
    * @param {Object} newProps - 新属性对象
    * @param {HTMLElement} el - DOM元素
@@ -222,7 +263,7 @@ function baseCreateRenderer(options) {
           hostPatchProp(el, key, prev, next);
         }
       }
-      // 特殊处理value属性
+      // 特殊处理value属性 - 确保value属性最后设置以避免意外覆盖
       if ("value" in newProps) {
         hostPatchProp(el, "value", oldProps.value, newProps.value);
       }
@@ -235,7 +276,7 @@ function baseCreateRenderer(options) {
    * @param {VNode} n2 - 新虚拟节点
    */
   const patchElement = (n1, n2) => {
-    // 复用旧元素的DOM引用
+    // 复用旧元素的DOM引用，避免重新创建DOM
     let el = (n2.el = n1.el);
     // 获取新旧属性
     const oldProps = n1.props || {};
@@ -251,6 +292,7 @@ function baseCreateRenderer(options) {
    * @param {VNode|null} n1 - 旧虚拟节点
    * @param {VNode} n2 - 新虚拟节点
    * @param {HTMLElement} container - 容器元素
+   * @param {HTMLElement} anchor - 锚点元素（插入位置参考点）
    */
   const processElement = (n1, n2, container, anchor) => {
     if (n1 == null) {
@@ -268,8 +310,10 @@ function baseCreateRenderer(options) {
    */
   const unmount = (vnode) => {
     if (vnode.type === Fragment) {
+      // Fragment类型节点需要递归卸载所有子节点
       unmountChildren(vnode.children);
     } else {
+      // 普通元素直接从DOM中移除
       hostRemove(vnode.el);
     }
   };
@@ -278,6 +322,7 @@ function baseCreateRenderer(options) {
    * 挂载子节点数组
    * @param {Array} children - 子节点数组
    * @param {HTMLElement} container - 容器元素
+   * @param {HTMLElement} anchor - 锚点元素
    */
   const mountChildren = (children, container, anchor) => {
     for (let i = 0; i < children.length; i++) {
@@ -296,12 +341,13 @@ function baseCreateRenderer(options) {
    * 挂载元素节点
    * @param {VNode} vnode - 虚拟节点
    * @param {HTMLElement} container - 容器元素
+   * @param {HTMLElement} anchor - 锚点元素
    */
   const mountElement = (vnode, container, anchor) => {
     let el;
     // 解构虚拟节点属性
     const { props, type, children, shapeFlag } = vnode;
-    // 创建真实DOM元素
+    // 创建真实DOM元素，并保存引用
     el = vnode.el = hostCreateElement(type);
 
     // 设置元素属性
@@ -320,42 +366,68 @@ function baseCreateRenderer(options) {
       hostSetElementText(el, children);
     }
 
-    // 将元素插入容器
+    // 将元素插入容器指定位置
     hostInsert(el, container, anchor);
   };
+
+  /**
+   * 处理文本节点
+   * @param {VNode|null} n1 - 旧虚拟节点
+   * @param {VNode} n2 - 新虚拟节点
+   * @param {HTMLElement} container - 容器元素
+   * @param {HTMLElement} anchor - 锚点元素
+   */
   const processText = (n1, n2, container, anchor) => {
     if (n1 == null) {
+      // 创建新的文本节点并插入
       hostInsert((n2.el = hostCreateText(n2.children)), container, anchor);
     } else {
+      // 更新现有文本节点
       const el = (n2.el = n1.el);
       if (n2.children !== n1.children) {
         hostSetText(el, n2.children);
       }
     }
   };
-  const processFragment = (n1, n2, container, anchor) => {
-    if (n1 == null) {
-      mountChildren(n2.children || [], container, anchor);
-    } else {
-      patchChildren(n1, n2, container, anchor);
-    }
-  };
+
   /**
-   * 核心patch方法，对比新旧虚拟节点并更新DOM
+   * 处理Fragment节点（片段节点，不会创建实际DOM元素）
    * @param {VNode|null} n1 - 旧虚拟节点
    * @param {VNode} n2 - 新虚拟节点
    * @param {HTMLElement} container - 容器元素
+   * @param {HTMLElement} anchor - 锚点元素
+   */
+  const processFragment = (n1, n2, container, anchor) => {
+    if (n1 == null) {
+      // 挂载所有子节点
+      mountChildren(n2.children || [], container, anchor);
+    } else {
+      // 更新子节点
+      patchChildren(n1, n2, container, anchor);
+    }
+  };
+
+  /**
+   * 核心patch方法，对比新旧虚拟节点并更新DOM
+   * 是整个渲染系统的调度中心
+   * @param {VNode|null} n1 - 旧虚拟节点
+   * @param {VNode} n2 - 新虚拟节点
+   * @param {HTMLElement} container - 容器元素
+   * @param {HTMLElement} anchor - 锚点元素
    */
   const patch = (n1, n2, container, anchor = null) => {
-    // 相同节点直接返回
+    // 相同节点直接返回（引用相等）
     if (n1 === n2) return;
 
-    // 不是相同类型的节点，先卸载旧节点
+    // 不是相同类型的节点，先卸载旧节点再处理新节点
     if (n1 && !isSameVNodeType(n1, n2)) {
       unmount(n1);
       n1 = null;
     }
+
     const { type, shapeFlag } = n2;
+
+    // 根据节点类型调用相应处理函数
     switch (type) {
       case Text:
         processText(n1, n2, container, anchor);
@@ -386,7 +458,7 @@ function baseCreateRenderer(options) {
       // 执行patch操作更新视图
       patch(container._vnode || null, vnode, container);
     }
-    // 保存当前虚拟节点引用
+    // 保存当前虚拟节点引用，供下次更新使用
     container._vnode = vnode;
   };
 

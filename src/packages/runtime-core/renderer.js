@@ -2,6 +2,7 @@
 import { ShapeFlags } from "@/shared/shapeFlags";
 import { isString } from "@/shared/utils";
 import { isSameVNodeType } from "./vnode";
+import { getSequence } from "@/shared/getSequence";
 
 /**
  * 创建渲染器的工厂函数
@@ -26,11 +27,11 @@ function baseCreateRenderer(options) {
     createElement: hostCreateElement,
     createText: hostCreateText,
     createComment: hostCreateComment,
-    setText: hostSetText,
+    // setText: hostSetText,
     setElementText: hostSetElementText,
-    parentNode: hostParentNode,
-    nextSibling: hostNextSibling,
-    setScopeId: hostSetScopeId,
+    // parentNode: hostParentNode,
+    // nextSibling: hostNextSibling,
+    // setScopeId: hostSetScopeId,
     insertStaticContent: hostInsertStaticContent,
   } = options;
 
@@ -69,7 +70,6 @@ function baseCreateRenderer(options) {
       e2--;
     }
     console.log(`i - ${i} e1 - ${e1} e2 - ${e2}`);
-
     if (i > e1) {
       // 新增子节点
       if (i <= e2) {
@@ -97,13 +97,37 @@ function baseCreateRenderer(options) {
         }
       }
       console.log(keyToNewIndexMap);
-      for (i = s1; i <= e1; i++) {
+      let j;
+      const toBePatched = e2 - s2 + 1;
+      let moved = false;
+      const newIndexToOldIndexMap = new Array(toBePatched);
+      for (i = 0; i < toBePatched; i++) newIndexToOldIndexMap[i] = 0;
+      for (let i = s1; i <= e1; i++) {
         const prevChild = c1[i];
         let newIndex = keyToNewIndexMap.get(prevChild.key);
         if (newIndex === undefined) {
           unmount(prevChild);
         } else {
-          patch(prevChild, c2[newIndex], container, null);
+          newIndexToOldIndexMap[i - s2] = i + 1; // 对应老节点对应的索引
+          patch(prevChild, c2[newIndex], container);
+        }
+      }
+      const increasingNewIndexSequence = moved
+        ? getSequence(newIndexToOldIndexMap)
+        : [];
+      j = increasingNewIndexSequence.length - 1;
+      for (i = toBePatched - 1; i >= 0; i--) {
+        const nextIndex = s2 + i;
+        const nextChild = c2[nextIndex];
+        const anchor = nextIndex + 1 < c2.length ? c2[nextIndex + 1].el : null;
+        if (newIndexToOldIndexMap[i] === 0) {
+          patch(null, nextChild, container, anchor);
+        } else {
+          if (j < 0 || i !== increasingNewIndexSequence[j]) {
+            hostInsert(nextChild.el, container, anchor);
+          } else {
+            j--;
+          }
         }
       }
     }

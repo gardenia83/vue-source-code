@@ -107,3 +107,8 @@ export function makeMap(str) {
   for (const key of str.split(",")) map[key] = 1;
   return (val) => val in map;
 }
+const camelizeRE = /-\w/g;
+
+export const camelize = (str) => {
+  return str.replace(camelizeRE, (c) => c.slice(1).toUpperCase());
+};

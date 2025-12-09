@@ -1,7 +1,7 @@
 // 导入工具函数和常量
 import { isString, isArray, hyphenate } from "@/shared/utils.js";
 import { CSS_VAR_TEXT } from "../helpers/useCssVar.js";
-
+import { camelize } from "@/shared/utils.js";
 // 匹配 display 样式的正则表达式
 const displayRE = /(?:^|;)\s*display\s*:/;
 
@@ -15,7 +15,6 @@ export function patchStyle(el, prev, next) {
   const style = el.style; // 获取元素的style对象
   const isCssString = isString(next); // 判断新样式是否为字符串
   let hasControlledDisplay = false; // 标记是否控制了display属性
-
   // 如果新样式存在且不为字符串（即为对象）
   if (next && !isCssString) {
     // 处理旧样式的清理工作
@@ -37,6 +36,12 @@ export function patchStyle(el, prev, next) {
           }
         }
       }
+    }
+    for (const key in next) {
+      if (key === "display") {
+        hasControlledDisplay = true;
+      }
+      setStyle(style, key, next[key]);
     }
   } else {
     // 新样式为字符串或空值的情况
@@ -95,4 +100,25 @@ function setStyle(style, name, value) {
       }
     }
   }
+}
+const prefixes = ["Webkit", "Moz", "ms"];
+const prefixCache = {};
+
+function autoPrefix(style, rawName) {
+  const cached = prefixCache[rawName];
+  if (cached) {
+    return cached;
+  }
+  let name = camelize(rawName);
+  if (name !== "filter" && name in style) {
+    return (prefixCache[rawName] = name);
+  }
+  name = capitalize(name);
+  for (let i = 0; i < prefixes.length; i++) {
+    const prefixed = prefixes[i] + name;
+    if (prefixed in style) {
+      return (prefixCache[rawName] = prefixed);
+    }
+  }
+  return rawName;
 }

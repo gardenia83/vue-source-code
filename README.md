@@ -63,3 +63,38 @@ render(h(Text, "hello world"));
 import { Fragment } from "@/runtime-core";
 render(h(Fragment, [h("div", "hello world"), h("div", "hello world")]));
 ```
+
+#### 支持组件节点添加
+
+```js
+import { h } from "@/runtime-core";
+const app = document.querySelector("#app");
+const component = {
+  data() {
+    return {
+      count: 0,
+    };
+  },
+  render() {
+    return h(
+      "div",
+      {
+        class: "app",
+      },
+      [
+        h("p", {}, "count: " + this.count),
+        h(
+          "button",
+          {
+            onClick: () => {
+              this.count++;
+            },
+          },
+          "click"
+        ),
+      ]
+    );
+  },
+};
+render(h(component), app);
+```

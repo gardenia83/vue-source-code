@@ -3,7 +3,8 @@ import { ShapeFlags } from "@/shared/shapeFlags";
 import { isString } from "@/shared/utils";
 import { isSameVNodeType, Text, Fragment } from "./vnode";
 import { getSequence } from "@/shared/getSequence";
-
+import { ReactiveEffect, reactive } from "@/reactivity";
+import { queueJob } from "./scheduler";
 /**
  * 创建渲染器的工厂函数
  * @param {Object} options - 平台特定的操作方法集合
@@ -303,6 +304,42 @@ function baseCreateRenderer(options) {
       patchElement(n1, n2);
     }
   };
+  const mountComponent = (initialVNode, container, anchor) => {
+    const { vnode, data = () => ({}), render } = initialVNode.type;
+    const instance = {
+      vnode,
+      data: reactive(data()),
+      render: null,
+      subTree: null,
+      isMounted: false,
+    };
+    const componentFn = () => {
+      if (!instance.isMounted) {
+        const subTree = render.call(instance.data);
+        patch(null, subTree, container, anchor);
+        instance.subTree = subTree;
+        instance.isMounted = true;
+      } else {
+        // 组件更新
+        const subTree = render.call(instance.data);
+        patch(instance.subTree, subTree, container, anchor);
+        instance.subTree = subTree;
+      }
+    };
+    const effect = new ReactiveEffect(componentFn, () => {
+      queueJob(instance.update);
+    });
+    const update = (instance.update = effect.run.bind(effect));
+    update();
+  };
+  const processComponent = (n1, n2, container, anchor) => {
+    if (n1 == null) {
+      // 组件初次渲染
+      mountComponent(n2, container, anchor);
+    } else {
+      //
+    }
+  };
 
   /**
    * 卸载虚拟节点
@@ -436,7 +473,11 @@ function baseCreateRenderer(options) {
         processFragment(n1, n2, container, anchor);
         break;
       default:
-        processElement(n1, n2, container, anchor);
+        if (shapeFlag & ShapeFlags.ELEMENT) {
+          processElement(n1, n2, container, anchor);
+        } else if (shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
+          processComponent(n1, n2, container, anchor);
+        }
     }
 
     // vue3 源码对不同类型的vnode做了不同的处理

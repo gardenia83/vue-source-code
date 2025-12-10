@@ -1,3 +1,4 @@
+import { hyphenate } from "@/shared/utils";
 // 定义一个唯一的Symbol作为key，用于在元素上存储事件处理器映射
 const veiKey = Symbol("_vei");
 
@@ -65,6 +66,7 @@ function createInvoker(initialValue, instance) {
   return invoker;
 }
 
+const optionsModifierRE = /(?:Once|Passive|Capture)$/;
 /**
  * 解析事件名称，提取事件名和选项
  * @param {string} name - 原始事件名称

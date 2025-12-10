@@ -66,6 +66,9 @@ export const isModelListener = (key) => {
   return key.startsWith("onUpdate:");
 };
 
+const hasOwnProperty = Object.prototype.hasOwnProperty;
+export const hasOwn = (value, key) => hasOwnProperty.call(value, key);
+
 /**
  * 创建一个带缓存功能的字符串处理函数
  * 避免对相同字符串重复执行转换操作

@@ -1,33 +1,33 @@
-import { render } from "@/runtime-dom/index.js";
-import { h } from "@/runtime-core";
+import { render } from "@/runtime-dom";
+import { h, Text, Fragment } from "@/runtime-core";
 const app = document.querySelector("#app");
-const component = {
+const Child = {
+  props: {
+    a: String,
+  },
+  render() {
+    return h(Text, this.a);
+  },
+};
+const Component = {
   data() {
     return {
-      count: 0,
-      age: "18",
+      isShow: false,
     };
   },
   render() {
-    return h(
-      "div",
-      {
-        class: "app",
-      },
-      [
-        h("p", {}, `count: ${this.count} age: ${this.age}`),
-        h(
-          "button",
-          {
-            onClick: () => {
-              this.count++;
-              this.age++;
-            },
+    return h(Fragment, [
+      h(
+        "button",
+        {
+          onClick: () => {
+            return (this.isShow = !this.isShow);
           },
-          "click"
-        ),
-      ]
-    );
+        },
+        "修改状态"
+      ),
+      h(Child, { a: this.isShow ? "显示" : "隐藏" }),
+    ]);
   },
 };
-render(h(component), app);
+render(h(Component), app);

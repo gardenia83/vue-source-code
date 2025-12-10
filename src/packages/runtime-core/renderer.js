@@ -1,10 +1,11 @@
 // 导入辅助工具和常量
 import { ShapeFlags } from "@/shared/shapeFlags";
-import { isString } from "@/shared/utils";
+import { isString, hasOwn } from "@/shared/utils";
 import { isSameVNodeType, Text, Fragment } from "./vnode";
 import { getSequence } from "@/shared/getSequence";
 import { ReactiveEffect, reactive } from "@/reactivity";
 import { queueJob } from "./scheduler";
+import { initProps } from "./componentProps";
 /**
  * 创建渲染器的工厂函数
  * @param {Object} options - 平台特定的操作方法集合
@@ -304,24 +305,67 @@ function baseCreateRenderer(options) {
       patchElement(n1, n2);
     }
   };
-  const mountComponent = (initialVNode, container, anchor) => {
-    const { vnode, data = () => ({}), render } = initialVNode.type;
+
+  const mountComponent = (vnode, container, anchor) => {
+    const { data = () => ({}), render, props: propsOptions = {} } = vnode.type;
     const instance = {
       vnode,
       data: reactive(data()),
       render: null,
       subTree: null,
       isMounted: false,
+      attrs: {},
+      props: {},
+      propsOptions,
+      proxy: null,
     };
+    initProps(instance, vnode.props);
+    vnode.component = instance;
+    const publicProperties = {
+      $props: (i) => i.props,
+      $attrs: (i) => i.attrs,
+    };
+    instance.proxy = new Proxy(instance, {
+      get(target, key) {
+        let { data, props, attrs } = target;
+        if (data && hasOwn(data, key)) {
+          return data[key];
+        } else if (props && hasOwn(props, key)) {
+          return props[key];
+        } else if (attrs && hasOwn(attrs, key)) {
+          return attrs[key];
+        }
+        let getter = publicProperties[key];
+        if (getter) {
+          return getter(target);
+        }
+      },
+      set(target, key, value) {
+        let { data, props, attrs } = target;
+
+        if (hasOwn(data, key)) {
+          data[key] = value;
+          return true;
+        } else if (hasOwn(props, key)) {
+          props[key] = value;
+          return true;
+        } else if (hasOwn(attrs, key)) {
+          attrs[key] = value;
+          return true;
+        }
+      },
+    });
     const componentFn = () => {
       if (!instance.isMounted) {
-        const subTree = render.call(instance.data);
+        const subTree = render.call(instance.proxy);
         patch(null, subTree, container, anchor);
         instance.subTree = subTree;
         instance.isMounted = true;
       } else {
         // 组件更新
-        const subTree = render.call(instance.data);
+        console.log(instance.proxy);
+        console.log(instance.subTree, subTree);
+        const subTree = render.call(instance.proxy);
         patch(instance.subTree, subTree, container, anchor);
         instance.subTree = subTree;
       }
@@ -332,12 +376,20 @@ function baseCreateRenderer(options) {
     const update = (instance.update = effect.run.bind(effect));
     update();
   };
+  const updateComponent = (n1, n2) => {
+    console.log("组件属性更新");
+    const instance = (n2.component = n1.component);
+    instance.next = n2;
+    initProps(instance, n2.props);
+    instance.update();
+  };
   const processComponent = (n1, n2, container, anchor) => {
     if (n1 == null) {
       // 组件初次渲染
       mountComponent(n2, container, anchor);
     } else {
-      //
+      // 组件属性更新
+      updateComponent(n1, n2);
     }
   };
 

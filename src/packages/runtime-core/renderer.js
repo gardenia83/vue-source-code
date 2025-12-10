@@ -6,6 +6,7 @@ import { getSequence } from "@/shared/getSequence";
 import { ReactiveEffect, reactive } from "@/reactivity";
 import { queueJob } from "./scheduler";
 import { initProps } from "./componentProps";
+
 /**
  * 创建渲染器的工厂函数
  * @param {Object} options - 平台特定的操作方法集合
@@ -306,28 +307,44 @@ function baseCreateRenderer(options) {
     }
   };
 
+  /**
+   * 挂载组件
+   * @param {VNode} vnode - 组件虚拟节点
+   * @param {HTMLElement} container - 容器元素
+   * @param {HTMLElement} anchor - 锚点元素
+   */
   const mountComponent = (vnode, container, anchor) => {
+    // 解构组件选项
     const { data = () => ({}), render, props: propsOptions = {} } = vnode.type;
+
+    // 创建组件实例
     const instance = {
-      vnode,
-      data: reactive(data()),
-      render: null,
-      subTree: null,
-      isMounted: false,
-      attrs: {},
-      props: {},
-      propsOptions,
-      proxy: null,
+      vnode, // 组件的虚拟节点
+      data: reactive(data()), // 响应式的data数据
+      render: null, // 渲染函数
+      subTree: null, // 子树
+      isMounted: false, // 是否已挂载
+      attrs: {}, // 属性
+      props: {}, // props
+      propsOptions, // props选项
+      proxy: null, // 代理对象
     };
+
+    // 初始化props
     initProps(instance, vnode.props);
     vnode.component = instance;
+
+    // 公共属性
     const publicProperties = {
       $props: (i) => i.props,
       $attrs: (i) => i.attrs,
     };
+
+    // 创建组件实例代理
     instance.proxy = new Proxy(instance, {
       get(target, key) {
         let { data, props, attrs } = target;
+        // 优先级：data > props > attrs
         if (data && hasOwn(data, key)) {
           return data[key];
         } else if (props && hasOwn(props, key)) {
@@ -335,6 +352,7 @@ function baseCreateRenderer(options) {
         } else if (attrs && hasOwn(attrs, key)) {
           return attrs[key];
         }
+        // 处理公共属性
         let getter = publicProperties[key];
         if (getter) {
           return getter(target);
@@ -343,6 +361,7 @@ function baseCreateRenderer(options) {
       set(target, key, value) {
         let { data, props, attrs } = target;
 
+        // 设置属性，遵循优先级顺序
         if (hasOwn(data, key)) {
           data[key] = value;
           return true;
@@ -355,34 +374,55 @@ function baseCreateRenderer(options) {
         }
       },
     });
+
+    // 组件渲染函数
     const componentFn = () => {
       if (!instance.isMounted) {
+        // 初次挂载
         const subTree = render.call(instance.proxy);
         patch(null, subTree, container, anchor);
         instance.subTree = subTree;
         instance.isMounted = true;
       } else {
         // 组件更新
-        console.log(instance.proxy);
-        console.log(instance.subTree, subTree);
         const subTree = render.call(instance.proxy);
         patch(instance.subTree, subTree, container, anchor);
         instance.subTree = subTree;
       }
     };
+
+    // 创建响应式副作用
     const effect = new ReactiveEffect(componentFn, () => {
       queueJob(instance.update);
     });
+
+    // 创建更新函数并立即执行
     const update = (instance.update = effect.run.bind(effect));
     update();
   };
+
+  /**
+   * 更新组件
+   * @param {VNode} n1 - 旧虚拟节点
+   * @param {VNode} n2 - 新虚拟节点
+   */
   const updateComponent = (n1, n2) => {
     console.log("组件属性更新");
     const instance = (n2.component = n1.component);
     instance.next = n2;
+    // 更新组件props
     initProps(instance, n2.props);
+    // 触发组件更新
     instance.update();
   };
+
+  /**
+   * 处理组件类型的虚拟节点
+   * @param {VNode|null} n1 - 旧虚拟节点
+   * @param {VNode} n2 - 新虚拟节点
+   * @param {HTMLElement} container - 容器元素
+   * @param {HTMLElement} anchor - 锚点元素
+   */
   const processComponent = (n1, n2, container, anchor) => {
     if (n1 == null) {
       // 组件初次渲染

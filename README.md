@@ -66,6 +66,8 @@ render(h(Fragment, [h("div", "hello world"), h("div", "hello world")]));
 
 #### 支持组件节点添加
 
+1. 创建组件节点渲染
+
 ```js
 import { h } from "@/runtime-core";
 const app = document.querySelector("#app");
@@ -97,4 +99,42 @@ const component = {
   },
 };
 render(h(component), app);
+```
+
+2. 组件属性更新
+
+```js
+import { render } from "@/runtime-dom";
+import { h, Text, Fragment } from "@/runtime-core";
+const app = document.querySelector("#app");
+const Child = {
+  props: {
+    a: String,
+  },
+  render() {
+    return h(Text, this.a);
+  },
+};
+const Component = {
+  data() {
+    return {
+      isShow: false,
+    };
+  },
+  render() {
+    return h(Fragment, [
+      h(
+        "button",
+        {
+          onClick: () => {
+            return (this.isShow = !this.isShow);
+          },
+        },
+        "修改状态"
+      ),
+      h(Child, { a: this.isShow ? "显示" : "隐藏" }),
+    ]);
+  },
+};
+render(h(Component), app);
 ```

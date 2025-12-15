@@ -1,3 +1,4 @@
+import { reactive } from "@/reactivity";
 /**
  * 初始化组件实例的 props 和 attrs
  *
@@ -49,4 +50,16 @@ export function initProps(instance, rawProps) {
   instance.props = reactive(props);
   // 将attrs直接挂载到实例上(非响应式)
   instance.attrs = attrs;
+}
+
+export function updateProps(instance, rawProps, rawPrevProps) {
+  const { props } = instance;
+  for (const key in rawProps) {
+    props[key] = rawProps[key];
+  }
+  for (const key in props) {
+    if (!(key in rawProps)) {
+      delete props[key];
+    }
+  }
 }

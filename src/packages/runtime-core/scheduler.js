@@ -1,3 +1,6 @@
+const queue = [];
+let isFlushing = false;
+const resolvePromise = Promise.resolve();
 /**
  * 将任务添加到队列中并异步执行
  * @param {Function} job - 需要执行的任务函数

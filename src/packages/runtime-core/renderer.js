@@ -5,7 +5,8 @@ import { isSameVNodeType, Text, Fragment } from "./vnode";
 import { getSequence } from "@/shared/getSequence";
 import { ReactiveEffect, reactive } from "@/reactivity";
 import { queueJob } from "./scheduler";
-import { initProps } from "./componentProps";
+import { updateProps } from "./componentProps";
+import { createComponentInstance, setupComponent } from "./component";
 
 /**
  * 创建渲染器的工厂函数
@@ -318,74 +319,25 @@ function baseCreateRenderer(options) {
     const { data = () => ({}), render, props: propsOptions = {} } = vnode.type;
 
     // 创建组件实例
-    const instance = {
-      vnode, // 组件的虚拟节点
-      data: reactive(data()), // 响应式的data数据
-      render: null, // 渲染函数
-      subTree: null, // 子树
-      isMounted: false, // 是否已挂载
-      attrs: {}, // 属性
-      props: {}, // props
-      propsOptions, // props选项
-      proxy: null, // 代理对象
-    };
+    const instance = (vnode.component = createComponentInstance(vnode));
 
     // 初始化props
-    initProps(instance, vnode.props);
-    vnode.component = instance;
-
-    // 公共属性
-    const publicProperties = {
-      $props: (i) => i.props,
-      $attrs: (i) => i.attrs,
-    };
-
-    // 创建组件实例代理
-    instance.proxy = new Proxy(instance, {
-      get(target, key) {
-        let { data, props, attrs } = target;
-        // 优先级：data > props > attrs
-        if (data && hasOwn(data, key)) {
-          return data[key];
-        } else if (props && hasOwn(props, key)) {
-          return props[key];
-        } else if (attrs && hasOwn(attrs, key)) {
-          return attrs[key];
-        }
-        // 处理公共属性
-        let getter = publicProperties[key];
-        if (getter) {
-          return getter(target);
-        }
-      },
-      set(target, key, value) {
-        let { data, props, attrs } = target;
-
-        // 设置属性，遵循优先级顺序
-        if (hasOwn(data, key)) {
-          data[key] = value;
-          return true;
-        } else if (hasOwn(props, key)) {
-          props[key] = value;
-          return true;
-        } else if (hasOwn(attrs, key)) {
-          attrs[key] = value;
-          return true;
-        }
-      },
-    });
-
+    setupComponent(instance);
     // 组件渲染函数
+    setupRenderEffect(instance, container, anchor);
+  };
+
+  const setupRenderEffect = (instance, container, anchor) => {
     const componentFn = () => {
       if (!instance.isMounted) {
         // 初次挂载
-        const subTree = render.call(instance.proxy);
+        const subTree = instance.render.call(instance.proxy);
         patch(null, subTree, container, anchor);
         instance.subTree = subTree;
         instance.isMounted = true;
       } else {
         // 组件更新
-        const subTree = render.call(instance.proxy);
+        const subTree = instance.render.call(instance.proxy);
         patch(instance.subTree, subTree, container, anchor);
         instance.subTree = subTree;
       }
@@ -400,7 +352,24 @@ function baseCreateRenderer(options) {
     const update = (instance.update = effect.run.bind(effect));
     update();
   };
-
+  const shouldComputeUpdate = (n1, n2) => {
+    const { props: prevProps, children: prevChildren } = n1;
+    const { props: nextProps, children: nextChildren } = n2;
+    if (prevChildren || nextChildren) return true;
+    if (prevProps === nextProps) return false;
+    return hasPropsChanged(prevProps, nextProps);
+  };
+  const hasPropsChanged = (prevProps, nextProps) => {
+    const nextKeys = Object.keys(nextProps);
+    // 快速检查属性数量是否一致
+    if (nextKeys.length !== Object.keys(prevProps).length) return true;
+    // 逐个检查属性是否相等
+    for (let i = 0; i < nextKeys.length; i++) {
+      const key = nextKeys[i];
+      if (nextProps[key] !== prevProps[key]) return true;
+    }
+    return false;
+  };
   /**
    * 更新组件
    * @param {VNode} n1 - 旧虚拟节点
@@ -409,11 +378,21 @@ function baseCreateRenderer(options) {
   const updateComponent = (n1, n2) => {
     console.log("组件属性更新");
     const instance = (n2.component = n1.component);
-    instance.next = n2;
+
     // 更新组件props
-    initProps(instance, n2.props);
-    // 触发组件更新
-    instance.update();
+    // initProps(instance, n2.props);
+    if (shouldComputeUpdate(n1, n2)) {
+      instance.next = n2;
+      updateComponentPreRender(instance, n2);
+      // 触发组件更新
+      instance.update();
+    }
+  };
+  const updateComponentPreRender = (instance, nextNode) => {
+    instance.next = null;
+    instance.vnode = nextNode;
+    updateProps(instance, nextNode.props, instance.props);
+    // TODO 插槽更新
   };
 
   /**
@@ -571,9 +550,6 @@ function baseCreateRenderer(options) {
           processComponent(n1, n2, container, anchor);
         }
     }
-
-    // vue3 源码对不同类型的vnode做了不同的处理
-    // 此处仅处理元素节点
   };
 
   /**
